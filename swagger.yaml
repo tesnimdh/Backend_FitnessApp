@@ -1,0 +1,221 @@
+openapi: 3.0.0
+info:
+  title: Fitness App API
+  version: "1.0.0"
+  description: API pour gérer les utilisateurs, les exercices, et les entraînements
+
+servers:
+  - url: http://localhost:3000
+    description: Serveur local de développement
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: "Identifiant unique de l'utilisateur"
+          example: "60a5e41ef7b5d64fc805f8e9"
+        image:
+          type: string
+          description: "URL de l'image de profil de l'utilisateur"
+          example: "assets/images/exercice.png"
+        lastname:
+          type: string
+          description: "Nom de famille de l'utilisateur"
+          example: "Doe"
+        firstname:
+          type: string
+          description: "Prénom de l'utilisateur"
+          example: "John"
+        weight:
+          type: array
+          description: "Historique des poids de l'utilisateur"
+          items:
+            type: object
+            properties:
+              value:
+                type: number
+                description: "Valeur du poids en kilogrammes"
+                example: 70
+              date:
+                type: Date
+                format: date-time
+                description: "Date de l'enregistrement du poids"
+                example: "2023-01-01T10:00:00.000Z"
+        height:
+          type: number
+          description: "Taille de l'utilisateur en centimètres"
+          example: 180
+        dateOfBirth:
+          type: string
+          format: date
+          description: "Date de naissance de l'utilisateur"
+          example: "1990-01-01"
+        gender:
+          type: string
+          description: "Genre de l'utilisateur"
+          example: "Male"
+          enum:
+            - Male
+            - Female
+        email:
+          type: string
+          format: email
+          description: "Adresse email de l'utilisateur"
+          example: "johndoe@gmail.com"
+        password:
+          type: string
+          description: "Mot de passe de l'utilisateur (haché en base de données)"
+          example: "password123"
+      required:
+        - lastname
+        - firstname
+        - height
+        - dateOfBirth
+        - gender
+        - email
+        - password
+
+    Exercice:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: "Identifiant unique de l'exercice"
+          example: "60a5e41ef7b5d64fc805f8e9"
+        name:
+          type: string
+          description: "Nom de l'exercice"
+          maxLength: 100
+          example: "Pompes"
+        description:
+          type: string
+          description: "Description de l'exercice"
+          maxLength: 5000
+          example: "Exercice de musculation pour renforcer les pectoraux."
+        image:
+          type: array
+          items:
+            type: string
+            description: "URL de l'image de l'exercice"
+            example: "assets/images/exercice.png"
+          description: "Liste d'images associées à l'exercice"
+        targetMuscles:
+          type: array
+          items:
+            type: string
+            description: "Nom d'un muscle ciblé par l'exercice"
+            maxLength: 100
+            example: "Pectoraux"
+          description: "Liste des muscles ciblés par l'exercice"
+      required:
+        - name
+        - description
+        - image
+        - targetMuscles
+
+security:
+  - bearerAuth: []
+
+paths:
+  /users:
+    post:
+      summary: Créer un nouvel utilisateur
+      tags:
+        - Utilisateurs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        201:
+          description: Utilisateur créé avec succès
+        400:
+          description: Erreur de validation
+
+  /exercices:
+    get:
+      summary: Récupérer la liste des exercices
+      tags:
+        - Exercices
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Liste des exercices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Exercice'
+        '401':
+          description: Non autorisé - Le token JWT est requis
+
+  /exercices/{exerciseId}:
+    put:
+      summary: Mettre à jour un exercice
+      tags:
+        - Exercices
+      parameters:
+        - in: path
+          name: exerciseId
+          required: true
+          schema:
+            type: string
+          description: ID de l'exercice à mettre à jour
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Nom de l'exercice
+                  example: "Push-Up"
+                description:
+                  type: string
+                  description: Description de l'exercice
+                  example: "Exercice de musculation pour renforcer les bras"
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                    description: Images de l'exercice
+                targetMuscles:
+                  type: array
+                  items:
+                    type: string
+                  description: Muscles ciblés par l'exercice
+      responses:
+        '200':
+          description: Exercice mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Exercice updated successfully"
+                  exercice:
+                    $ref: '#/components/schemas/Exercice'
+        '400':
+          description: Requête invalide
+        '404':
+          description: Exercice non trouvé
+        '500':
+          description: Erreur interne du serveur
